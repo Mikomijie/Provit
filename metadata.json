@@ -1,0 +1,6 @@
+{
+  "name": "LearnDrop",
+  "description": "Turn any study material into interactive bite-sized courses backed by AI proof-of-understanding challenges.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
