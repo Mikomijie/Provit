@@ -10,68 +10,50 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
-// In-memory job store
 const jobs: Record<string, { status: string; data: any; error: string | null }> = {};
 
-async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) throw new Error("GROQ_API_KEY is not set in your .env file.");
+async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("OPENROUTER_API_KEY is not set.");
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 55000);
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${key}`,
+      "HTTP-Referer": "https://provit-ai.quikdb.net",
+      "X-Title": "Provit"
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.0-flash-exp:free",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 4000
+    })
+  });
 
-  try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-        response_format: { type: "json_object" }
-      })
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Groq API error: ${err}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-
-  } catch (err: any) {
-    clearTimeout(timeout);
-    if (err.name === "AbortError") {
-      throw new Error("Request timed out. Please try again.");
-    }
-    throw err;
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`OpenRouter error: ${err}`);
   }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// New async generate — responds instantly, processes in background
 app.post("/api/course/generate", async (req, res) => {
   const jobId = Date.now().toString();
   jobs[jobId] = { status: "processing", data: null, error: null };
 
-  // Respond immediately — no timeout!
   res.json({ jobId, status: "processing" });
 
-  // Process in background
   try {
     const { topic, materialText, difficultyLevel, pdfBase64 } = req.body;
     let finalText = materialText || "";
@@ -109,7 +91,7 @@ Material: ${finalText ? `"""${finalText}"""` : "None provided"}
 Difficulty: ${difficultyLevel || "General Learner"}
 Return exactly 5 lessons in the JSON structure specified.`;
 
-    const raw = await callGroq(systemPrompt, userPrompt);
+    const raw = await callAI(systemPrompt, userPrompt);
     const courseData = JSON.parse(raw);
     jobs[jobId] = { status: "done", data: courseData, error: null };
 
@@ -119,7 +101,6 @@ Return exactly 5 lessons in the JSON structure specified.`;
   }
 });
 
-// Poll endpoint — frontend checks this every 2 seconds
 app.get("/api/course/status/:jobId", (req, res) => {
   const job = jobs[req.params.jobId];
   if (!job) return res.status(404).json({ error: "Job not found" });
@@ -149,7 +130,7 @@ Type: "${challengeType}"
 ${correctAnswer ? `Correct Answer: "${correctAnswer}"` : ""}
 Score from 0-100. Return JSON with passed, score, feedback, suggestedCorrection.`;
 
-    const raw = await callGroq(systemPrompt, userPrompt);
+    const raw = await callAI(systemPrompt, userPrompt);
     const evaluation = JSON.parse(raw);
     return res.json(evaluation);
 
