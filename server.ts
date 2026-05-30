@@ -14,31 +14,46 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY is not set in your .env file.");
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key}`
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.2,
-      max_tokens: 4000,
-      response_format: { type: "json_object" }
-    })
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Groq API error: ${err}`);
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.2,
+        max_tokens: 4000,
+        response_format: { type: "json_object" }
+      })
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Groq API error: ${err}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+
+  } catch (err: any) {
+    clearTimeout(timeout);
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out. Please try again.");
+    }
+    throw err;
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 app.get("/api/health", (req, res) => {
@@ -128,7 +143,6 @@ Score from 0-100. Return JSON with passed, score, feedback, suggestedCorrection.
   }
 });
 
-// Always serve static files — no dev/production split needed on QuikDB
 const distPath = path.join(process.cwd(), "dist");
 app.use(express.static(distPath));
 app.get("*", (req, res) => {
