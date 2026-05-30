@@ -111,7 +111,7 @@ export default function CourseViewer({
 
   // Lesson Pathway Indicator Checklist
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8" id="course-viewer-container">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8" id="course-viewer-container">
       
       {/* Course Header Banner */}
       <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mb-8 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -236,7 +236,12 @@ export default function CourseViewer({
           {unlockedLessonId > 5 && (
             <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center mt-6 animate-fade-in text-emerald-900 space-y-1.5">
               <div className="flex justify-center"><Icons.PartyPopper className="h-6 w-6 text-emerald-600" /></div>
-              <h4 className="font-bold text-sm">Course Conquered!</h4>
+              <button
+  onClick={() => window.print()}
+  className="mt-3 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"
+>
+  Download Certificate
+</button>
               <p className="text-xs text-emerald-700 leading-relaxed">
                 Incredible! You have demonstrated proof of understanding on all 5 units. Feel free to download, review, or type a new topic in the generator dashboard anytime!
               </p>
@@ -390,6 +395,10 @@ export default function CourseViewer({
                         rows={3.5}
                         value={userExplanation}
                         onChange={(e) => setUserExplanation(e.target.value)}
+onPaste={(e) => {
+  e.preventDefault();
+  alert("Provit requires active recall! Please type your answer in your own words.");
+}}
                         placeholder="Explain key concepts clearly in your own words. Standard explanations mentioned in the lesson block will unlock immediately!"
                         className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6C47FF]/20 focus:border-[#6C47FF] transition-all"
                         required

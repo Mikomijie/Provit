@@ -1,12 +1,11 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
@@ -52,17 +51,17 @@ app.post("/api/course/generate", async (req, res) => {
 
     let finalText = materialText || "";
 
-   if (pdfBase64) {
-  try {
-    const { extractText } = await import("unpdf");
-    const buffer = Buffer.from(pdfBase64, "base64");
-    const { text } = await extractText(new Uint8Array(buffer), { mergePages: true });
-    finalText = text.substring(0, 8000);
-  } catch (pdfErr: any) {
-    console.error("PDF Error:", pdfErr);
-    return res.status(400).json({ error: "Could not read PDF. Please paste your text directly instead." });
-  }
-}
+    if (pdfBase64) {
+      try {
+        const { extractText } = await import("unpdf");
+        const buffer = Buffer.from(pdfBase64, "base64");
+        const { text } = await extractText(new Uint8Array(buffer), { mergePages: true });
+        finalText = text.substring(0, 8000);
+      } catch (pdfErr: any) {
+        console.error("PDF Error:", pdfErr);
+        return res.status(400).json({ error: "Could not read PDF. Please paste your text directly instead." });
+      }
+    }
 
     if (!topic && !finalText.trim()) {
       return res.status(400).json({ error: "Please provide a topic or study material." });
@@ -129,26 +128,13 @@ Score from 0-100. Return JSON with passed, score, feedback, suggestedCorrection.
   }
 });
 
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-    console.log("Vite development server middleware integrated.");
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-    console.log("Serving static production assets from /dist.");
-  }
+// Always serve static files — no dev/production split needed on QuikDB
+const distPath = path.join(process.cwd(), "dist");
+app.use(express.static(distPath));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
+});
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Provit Server running on port ${PORT}`);
-  });
-}
-
-startServer();
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Provit Server running on port ${PORT}`);
+});
