@@ -26,7 +26,7 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
         "Authorization": `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: "llama-3.1-8b-instant",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
