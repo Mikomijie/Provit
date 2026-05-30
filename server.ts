@@ -10,12 +10,15 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 
+// In-memory job store
+const jobs: Record<string, { status: string; data: any; error: string | null }> = {};
+
 async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY is not set in your .env file.");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 55000);
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -60,10 +63,17 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
+// New async generate — responds instantly, processes in background
 app.post("/api/course/generate", async (req, res) => {
+  const jobId = Date.now().toString();
+  jobs[jobId] = { status: "processing", data: null, error: null };
+
+  // Respond immediately — no timeout!
+  res.json({ jobId, status: "processing" });
+
+  // Process in background
   try {
     const { topic, materialText, difficultyLevel, pdfBase64 } = req.body;
-
     let finalText = materialText || "";
 
     if (pdfBase64) {
@@ -73,13 +83,14 @@ app.post("/api/course/generate", async (req, res) => {
         const { text } = await extractText(new Uint8Array(buffer), { mergePages: true });
         finalText = text.substring(0, 8000);
       } catch (pdfErr: any) {
-        console.error("PDF Error:", pdfErr);
-        return res.status(400).json({ error: "Could not read PDF. Please paste your text directly instead." });
+        jobs[jobId] = { status: "error", data: null, error: "Could not read PDF. Please paste text directly." };
+        return;
       }
     }
 
     if (!topic && !finalText.trim()) {
-      return res.status(400).json({ error: "Please provide a topic or study material." });
+      jobs[jobId] = { status: "error", data: null, error: "Please provide a topic or study material." };
+      return;
     }
 
     const systemPrompt =
@@ -96,17 +107,23 @@ app.post("/api/course/generate", async (req, res) => {
 Topic: "${topic || 'Extracted from uploaded material'}"
 Material: ${finalText ? `"""${finalText}"""` : "None provided"}
 Difficulty: ${difficultyLevel || "General Learner"}
-
 Return exactly 5 lessons in the JSON structure specified.`;
 
     const raw = await callGroq(systemPrompt, userPrompt);
     const courseData = JSON.parse(raw);
-    return res.json(courseData);
+    jobs[jobId] = { status: "done", data: courseData, error: null };
 
   } catch (err: any) {
     console.error("Course Generation Error:", err);
-    res.status(500).json({ error: err.message || "Failed to generate course. Please try again." });
+    jobs[jobId] = { status: "error", data: null, error: err.message };
   }
+});
+
+// Poll endpoint — frontend checks this every 2 seconds
+app.get("/api/course/status/:jobId", (req, res) => {
+  const job = jobs[req.params.jobId];
+  if (!job) return res.status(404).json({ error: "Job not found" });
+  res.json(job);
 });
 
 app.post("/api/course/evaluate", async (req, res) => {
@@ -130,7 +147,6 @@ Question: "${challengePrompt}"
 Student Answer: "${userAnswer}"
 Type: "${challengeType}"
 ${correctAnswer ? `Correct Answer: "${correctAnswer}"` : ""}
-
 Score from 0-100. Return JSON with passed, score, feedback, suggestedCorrection.`;
 
     const raw = await callGroq(systemPrompt, userPrompt);

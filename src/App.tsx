@@ -5,34 +5,26 @@ import UploadPage from "./components/UploadPage";
 import CourseViewer from "./components/CourseViewer";
 import HistoryList from "./components/HistoryList";
 import { Course, Lesson, EvaluationResult } from "./types";
-import { BookOpen, Sparkles, GraduationCap, ArrowRight, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 export default function App() {
-  // Navigation & Core States
   const [currentView, setCurrentView] = useState<'landing' | 'upload' | 'course' | 'history'>('landing');
   const [uploadInitialMode, setUploadInitialMode] = useState<'topic' | 'material'>('topic');
   const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const [unlockedLessonId, setUnlockedLessonId] = useState<number>(1);
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  
-  // Library History persistent container
   const [courseHistory, setCourseHistory] = useState<{
     [key: string]: { course: Course; unlockedLessonId: number };
   }>({});
-
-  // Error modal tracking
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load History from Local Storage on startup
   useEffect(() => {
     try {
       const saved = localStorage.getItem("learndrop_courses_v2");
       if (saved) {
         const parsed = JSON.parse(saved);
         setCourseHistory(parsed);
-        
-        // Auto resume the most recent or active course if present
         const keys = Object.keys(parsed);
         if (keys.length > 0) {
           const lastKey = keys[keys.length - 1];
@@ -42,11 +34,10 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.error("Local Storage Ingestion failed: ", err);
+      console.error("Local Storage load failed: ", err);
     }
   }, []);
 
-  // Sync History updates to Local Storage
   const syncHistoryToStorage = (updatedHistory: typeof courseHistory) => {
     setCourseHistory(updatedHistory);
     localStorage.setItem("learndrop_courses_v2", JSON.stringify(updatedHistory));
@@ -57,7 +48,6 @@ export default function App() {
     setCurrentView('upload');
   };
 
-  // Route: Course Generation API Trigger
   const handleGenerateCourse = async (params: {
     topic?: string;
     materialText?: string;
@@ -67,6 +57,7 @@ export default function App() {
     setIsGenerating(true);
     setErrorMessage(null);
     try {
+      // Step 1 — start the job, server responds instantly
       const response = await fetch("/api/course/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,47 +66,58 @@ export default function App() {
 
       if (!response.ok) {
         const errJson = await response.json();
-        throw new Error(errJson.error || "Server responded with an unexpected failure.");
+        throw new Error(errJson.error || "Server error.");
       }
 
-      const courseData: Course = await response.json();
-      
-      // Inject fallback identifiers
-      const courseKey = courseData.title || params.topic || "Untargeted Class";
-      
+      const { jobId } = await response.json();
+
+      // Step 2 — poll every 2 seconds until done
+      const courseData = await new Promise<any>((resolve, reject) => {
+        const interval = setInterval(async () => {
+          try {
+            const poll = await fetch(`/api/course/status/${jobId}`);
+            const result = await poll.json();
+
+            if (result.status === "done") {
+              clearInterval(interval);
+              resolve(result.data);
+            } else if (result.status === "error") {
+              clearInterval(interval);
+              reject(new Error(result.error || "Course generation failed."));
+            }
+            // still "processing" — keep polling
+          } catch (pollErr) {
+            clearInterval(interval);
+            reject(pollErr);
+          }
+        }, 2000);
+      });
+
+      const courseKey = courseData.title || params.topic || "Untitled Course";
       const newHistory = {
         ...courseHistory,
-        [courseKey]: {
-          course: courseData,
-          unlockedLessonId: 1
-        }
+        [courseKey]: { course: courseData, unlockedLessonId: 1 }
       };
-      
-      // Save state
+
       setActiveCourse(courseData);
       setUnlockedLessonId(1);
       setActiveLessonId(1);
       syncHistoryToStorage(newHistory);
-      
-      // Switch to viewer
       setCurrentView('course');
+
     } catch (err: any) {
       console.error("Course Generation trigger failed: ", err);
-      setErrorMessage(
-        err.message || 
-        "Course building failed. Please verify that process.env.GEMINI_API_KEY is configured correctly under Settings > Secrets."
-      );
+      setErrorMessage(err.message || "Course building failed. Please try again.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Route: Challenge Evaluation API Trigger
   const handleEvaluateChallenge = async (params: {
     lesson: Lesson;
     userAnswer: string;
   }): Promise<EvaluationResult> => {
-    if (!activeCourse) throw new Error("No active study curriculum focus.");
+    if (!activeCourse) throw new Error("No active course.");
 
     const payload = {
       courseTitle: activeCourse.title,
@@ -134,26 +136,19 @@ export default function App() {
 
     if (!response.ok) {
       const errJson = await response.json();
-      throw new Error(errJson.error || "Tutor server error evaluating answer.");
+      throw new Error(errJson.error || "Evaluation failed.");
     }
 
-    const evaluation_outcome: EvaluationResult = await response.json();
-    return evaluation_outcome;
+    return await response.json();
   };
 
-  // Progression hooks
   const handleSetUnlocks = (nextId: number) => {
     if (!activeCourse) return;
     const courseKey = activeCourse.title;
-    
     setUnlockedLessonId(nextId);
-    
     const updatedHistory = {
       ...courseHistory,
-      [courseKey]: {
-        ...courseHistory[courseKey],
-        unlockedLessonId: nextId
-      }
+      [courseKey]: { ...courseHistory[courseKey], unlockedLessonId: nextId }
     };
     syncHistoryToStorage(updatedHistory);
   };
@@ -162,7 +157,6 @@ export default function App() {
     setActiveLessonId(nextId);
   };
 
-  // Library interaction tools
   const handleResumeCourseInLibrary = (key: string) => {
     const target = courseHistory[key];
     if (target) {
@@ -177,8 +171,6 @@ export default function App() {
     const updated = { ...courseHistory };
     delete updated[key];
     syncHistoryToStorage(updated);
-
-    // If active course deleted, scrub selected items
     if (activeCourse?.title === key) {
       const keys = Object.keys(updated);
       if (keys.length > 0) {
@@ -198,29 +190,24 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FAFAFA]" id="app-root-container">
-      
-      {/* Universal Sticky Navigation */}
-      <Navbar 
+
+      <Navbar
         currentView={currentView}
         onNavigate={setCurrentView}
         hasActiveCourse={activeCourse !== null}
         historyCount={historyCount}
       />
 
-      {/* Main Container Workspace */}
       <main className="flex-grow">
-        
-        {/* API Connection / Keys alert display panel */}
+
         {errorMessage && (
-          <div className="max-w-xl mx-auto mt-6 px-6 animate-fade-in" id="error-alert">
-            <div className="bg-[#FF6B6B]/10 border border-[#FF6B6B]/20 text-red-950 px-5 py-4.5 rounded-2xl flex items-start space-x-3.5 text-left">
+          <div className="max-w-xl mx-auto mt-6 px-6" id="error-alert">
+            <div className="bg-[#FF6B6B]/10 border border-[#FF6B6B]/20 text-red-950 px-5 py-4 rounded-2xl flex items-start space-x-3.5 text-left">
               <span className="p-1 px-2.5 bg-[#FF6B6B]/20 text-[#FF6B6B] rounded-xl font-bold font-mono text-sm shrink-0">!</span>
               <div className="space-y-1">
                 <p className="font-extrabold text-sm leading-none">AI Integration Notice</p>
-                <p className="text-xs leading-relaxed text-gray-600">
-                  {errorMessage}
-                </p>
-                <button 
+                <p className="text-xs leading-relaxed text-gray-600">{errorMessage}</p>
+                <button
                   onClick={() => setErrorMessage(null)}
                   className="text-xs font-bold text-[#6C47FF] hover:underline mt-1 border-0 bg-transparent inline-block cursor-pointer"
                 >
@@ -231,9 +218,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Dynamic Route Switching Dashboard */}
         {currentView === 'landing' && (
-          <LandingPage 
+          <LandingPage
             onGetStarted={handleGetStarted}
             onNavigate={setCurrentView}
             historyCount={historyCount}
@@ -241,7 +227,7 @@ export default function App() {
         )}
 
         {currentView === 'upload' && (
-          <UploadPage 
+          <UploadPage
             initialMode={uploadInitialMode}
             onGenerate={handleGenerateCourse}
             isGenerating={isGenerating}
@@ -249,7 +235,7 @@ export default function App() {
         )}
 
         {currentView === 'course' && activeCourse && (
-          <CourseViewer 
+          <CourseViewer
             course={activeCourse}
             unlockedLessonId={unlockedLessonId}
             activeLessonId={activeLessonId}
@@ -262,9 +248,9 @@ export default function App() {
         {currentView === 'course' && !activeCourse && (
           <div className="text-center py-20 bg-white shadow-xs rounded-3xl max-w-lg mx-auto border border-gray-150 p-8 mt-12 space-y-4">
             <HelpCircle className="h-12 w-12 text-gray-300 mx-auto" strokeWidth="1.5" />
-            <h3 className="font-display font-extrabold text-lg text-gray-900 leading-none">No active course is selected</h3>
+            <h3 className="font-extrabold text-lg text-gray-900 leading-none">No active course selected</h3>
             <p className="text-xs text-gray-500 max-w-sm mx-auto">
-              You haven't generated a curriculum focus yet. Go to our Generator Hub to build your customized 5-lesson study path.
+              Generate a course first to start learning.
             </p>
             <button
               onClick={() => setCurrentView('upload')}
@@ -276,7 +262,7 @@ export default function App() {
         )}
 
         {currentView === 'history' && (
-          <HistoryList 
+          <HistoryList
             courses={courseHistory}
             onResumeCourse={handleResumeCourseInLibrary}
             onDeleteCourse={handleDeleteCourseInLibrary}
@@ -285,7 +271,6 @@ export default function App() {
         )}
 
       </main>
-
     </div>
   );
 }
