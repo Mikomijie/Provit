@@ -14,6 +14,7 @@ const jobs: Record<string, { status: string; data: any; error: string | null }> 
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   const key = process.env.OPENROUTER_API_KEY;
+  console.log("API KEY EXISTS:", !!key, "LENGTH:", key?.length);
   if (!key) throw new Error("OPENROUTER_API_KEY is not set.");
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
