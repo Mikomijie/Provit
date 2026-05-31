@@ -25,7 +25,7 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
       "X-Title": "Provit"
     },
     body: JSON.stringify({
-      model: "meta-llama/llama-3.3-70b-instruct:free",
+      model: "deepseek/deepseek-r1:free",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
