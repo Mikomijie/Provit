@@ -25,13 +25,13 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
       "X-Title": "Provit"
     },
     body: JSON.stringify({
-      model: "openrouter/free",
+      model: "meta-llama/llama-3.3-70b-instruct:free",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
       temperature: 0.2,
-      max_tokens: 4000
+      max_tokens: 8000
     })
   });
 
