@@ -40,8 +40,9 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
     throw new Error(`OpenRouter error: ${err}`);
   }
 
-  const data = await response.json();
-  let content = data.choices[0].message.content;
+const data = await response.json();
+  let content = data.choices[0]?.message?.content;
+  if (!content) throw new Error("AI returned empty response. Please try again.");
   content = content.replace(/^```json\n?/i, '').replace(/^```\n?/i, '').replace(/\n?```$/i, '').trim();
   return content;
 }
