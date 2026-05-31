@@ -526,7 +526,7 @@ export default function LandingPage({ onGetStarted, onNavigate, historyCount }: 
       <footer className="border-t py-10" style={{ borderColor: "rgba(0,0,0,0.06)", background: "rgba(255,255,255,0.6)", backdropFilter: "blur(12px)" }}>
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png.png" alt="Provit" className="w-6 h-6 rounded-lg object-contain" />
+            <img src="/logo.png.png" alt="Provit" className="w-6 h-6 rounded-lg object-cover" />
             <span style={{ fontWeight: 800, color: "#0f0f1a", fontSize: 14 }}>Provit</span>
             <span style={{ color: "#d1d5db", margin: "0 4px" }}>·</span>
             <span style={{ color: "#9ca3af", fontSize: 13 }}>Built for real students</span>
