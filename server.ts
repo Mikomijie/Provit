@@ -26,7 +26,7 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
       "X-Title": "Provit"
     },
     body: JSON.stringify({
-      model: "google/gemini-flash-1.5-8b",
+      model: "openrouter/free",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
