@@ -14,7 +14,6 @@ const jobs: Record<string, { status: string; data: any; error: string | null }> 
 
 async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
   const key = process.env.OPENROUTER_API_KEY;
-  console.log("API KEY EXISTS:", !!key, "LENGTH:", key?.length);
   if (!key) throw new Error("OPENROUTER_API_KEY is not set.");
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -42,7 +41,9 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  let content = data.choices[0].message.content;
+  content = content.replace(/^```json\n?/i, '').replace(/^```\n?/i, '').replace(/\n?```$/i, '').trim();
+  return content;
 }
 
 app.get("/api/health", (req, res) => {
@@ -78,7 +79,8 @@ app.post("/api/course/generate", async (req, res) => {
 
     const systemPrompt =
       "You are a friendly, genius curriculum designer. Transform any educational request " +
-      "into an engaging 5-lesson micro-course. Output ONLY valid JSON, no extra text. " +
+      "into an engaging 5-lesson micro-course. Output ONLY raw valid JSON. " +
+      "CRITICAL: Do NOT wrap in markdown code blocks. Do NOT use backticks. Do NOT write ```json. Just output the raw JSON object directly. " +
       "Structure: { title, difficulty, summary, lessons: [ { id, title, visualIcon, " +
       "shortDescription, content, challengeType, challengePrompt, multipleChoiceOptions, " +
       "correctAnswer, successCriteriaHint } ] }. " +
@@ -118,7 +120,7 @@ app.post("/api/course/evaluate", async (req, res) => {
 
     const systemPrompt =
       "You are a warm, supportive AI tutor with a Duolingo-style vibe. " +
-      "Output ONLY valid JSON, no extra text. " +
+      "Output ONLY raw valid JSON. Do NOT use markdown code blocks or backticks. Just raw JSON. " +
       "Structure: { passed: boolean, score: number (0-100), feedback: string, suggestedCorrection: string }. " +
       "passed is true if score >= 70. Be encouraging and constructive.";
 
