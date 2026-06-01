@@ -12,23 +12,23 @@ export default function Navbar({ currentView, onNavigate, hasActiveCourse, histo
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 py-3.5 px-6">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
 
-        {/* Brand — logo image + Provit name, no subtitle */}
         <button
           onClick={() => onNavigate('landing')}
           className="flex items-center gap-2.5 group cursor-pointer"
           id="nav-logo-btn"
         >
-          <img
-            src="/logo.png.png"
-            alt="Provit logo"
-            className="w-9 h-9 rounded-xl object-contain transition-transform duration-200 group-hover:scale-105"
-          />
+          <div className="w-9 h-9 rounded-xl bg-[#6C47FF] flex items-center justify-center transition-transform duration-200 group-hover:scale-105 flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <polyline points="9 11 11 13 15 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
           <span className="font-black text-xl text-gray-900 tracking-tight">
             Provit
           </span>
         </button>
 
-        {/* Nav actions */}
         <div className="flex items-center gap-2 md:gap-3">
 
           {historyCount > 0 && (
