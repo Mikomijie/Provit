@@ -178,18 +178,19 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
               }`}
             >
               <Sparkles className="h-3.5 w-3.5 text-[#FF6B6B] shrink-0" />
-              <span>Learn a Topic</span>
+              <span className="hidden sm:inline">Learn a Topic</span>
+<span className="sm:hidden">Learn</span>
             </button>
-            <button
-              onClick={() => { setMode('material'); setTopic(''); }}
-              className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                mode === 'material' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5 text-[#6C47FF] shrink-0" />
-              <span>Upload Material</span>
-            </button>
-          </div>
+             <button
+  onClick={() => { setMode('material'); setTopic(''); }}
+  className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+    mode === 'material' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+  }`}
+>
+  <FileText className="h-3.5 w-3.5 text-[#6C47FF] shrink-0" />
+  <span className="hidden sm:inline">Upload Material</span>
+  <span className="sm:hidden">Upload</span>
+</button>
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
