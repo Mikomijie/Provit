@@ -14,6 +14,7 @@ export default function App() {
   const [unlockedLessonId, setUnlockedLessonId] = useState<number>(1);
   const [activeLessonId, setActiveLessonId] = useState<number>(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasStartedCourse, setHasStartedCourse] = useState(false);
   const [courseHistory, setCourseHistory] = useState<{
     [key: string]: { course: Course; unlockedLessonId: number };
   }>({});
@@ -25,13 +26,6 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         setCourseHistory(parsed);
-        const keys = Object.keys(parsed);
-        if (keys.length > 0) {
-          const lastKey = keys[keys.length - 1];
-          setActiveCourse(parsed[lastKey].course);
-          setUnlockedLessonId(parsed[lastKey].unlockedLessonId);
-          setActiveLessonId(parsed[lastKey].unlockedLessonId > 5 ? 5 : parsed[lastKey].unlockedLessonId);
-        }
       }
     } catch (err) {
       console.error("Local Storage load failed: ", err);
@@ -57,7 +51,6 @@ export default function App() {
     setIsGenerating(true);
     setErrorMessage(null);
     try {
-      // Step 1 — start the job, server responds instantly
       const response = await fetch("/api/course/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,13 +64,11 @@ export default function App() {
 
       const { jobId } = await response.json();
 
-      // Step 2 — poll every 2 seconds until done
       const courseData = await new Promise<any>((resolve, reject) => {
         const interval = setInterval(async () => {
           try {
             const poll = await fetch(`/api/course/status/${jobId}`);
             const result = await poll.json();
-
             if (result.status === "done") {
               clearInterval(interval);
               resolve(result.data);
@@ -85,7 +76,6 @@ export default function App() {
               clearInterval(interval);
               reject(new Error(result.error || "Course generation failed."));
             }
-            // still "processing" — keep polling
           } catch (pollErr) {
             clearInterval(interval);
             reject(pollErr);
@@ -102,6 +92,7 @@ export default function App() {
       setActiveCourse(courseData);
       setUnlockedLessonId(1);
       setActiveLessonId(1);
+      setHasStartedCourse(true);
       syncHistoryToStorage(newHistory);
       setCurrentView('course');
 
@@ -163,6 +154,7 @@ export default function App() {
       setActiveCourse(target.course);
       setUnlockedLessonId(target.unlockedLessonId);
       setActiveLessonId(target.unlockedLessonId > 5 ? 5 : target.unlockedLessonId);
+      setHasStartedCourse(true);
       setCurrentView('course');
     }
   };
@@ -172,17 +164,10 @@ export default function App() {
     delete updated[key];
     syncHistoryToStorage(updated);
     if (activeCourse?.title === key) {
-      const keys = Object.keys(updated);
-      if (keys.length > 0) {
-        const lastKey = keys[keys.length - 1];
-        setActiveCourse(updated[lastKey].course);
-        setUnlockedLessonId(updated[lastKey].unlockedLessonId);
-        setActiveLessonId(updated[lastKey].unlockedLessonId > 5 ? 5 : updated[lastKey].unlockedLessonId);
-      } else {
-        setActiveCourse(null);
-        setUnlockedLessonId(1);
-        setActiveLessonId(1);
-      }
+      setActiveCourse(null);
+      setHasStartedCourse(false);
+      setUnlockedLessonId(1);
+      setActiveLessonId(1);
     }
   };
 
@@ -194,7 +179,7 @@ export default function App() {
       <Navbar
         currentView={currentView}
         onNavigate={setCurrentView}
-        hasActiveCourse={activeCourse !== null}
+        hasActiveCourse={hasStartedCourse && activeCourse !== null}
         historyCount={historyCount}
       />
 
