@@ -46,12 +46,20 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
 
   const readFile = (file: File) => {
     if (!file) return;
+
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.pptx') || name.endsWith('.ppt') || name.endsWith('.doc') || name.endsWith('.docx')) {
+      setFileReadingMsg("❌ This file type isn't supported. Please upload a PDF or paste your text directly.");
+      setFileName(file.name);
+      return;
+    }
+
     setFileName(file.name);
     setFileReadingMsg("Reading file...");
     setPdfBase64(undefined);
     setMaterialText("");
 
-    if (file.name.toLowerCase().endsWith('.pdf')) {
+    if (name.endsWith('.pdf')) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = (e.target?.result as string)?.split(',')[1];
@@ -101,7 +109,7 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
       return;
     }
     if (mode === 'material' && !materialText.trim() && !pdfBase64 && !topic.trim()) {
-      alert("Please upload a file, paste text, or enter a topic.");
+      alert("Please upload a PDF, paste text, or enter a topic.");
       return;
     }
     onGenerate({
@@ -113,10 +121,10 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
   };
 
   return (
-    <div className="max-w-xl mx-auto px-6 py-12" id="upload-layout">
+    <div className="max-w-xl mx-auto px-4 py-8 sm:px-6 sm:py-12" id="upload-layout">
 
       {isGenerating ? (
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl text-center flex flex-col items-center space-y-8" id="loading-box">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl text-center flex flex-col items-center space-y-8" id="loading-box">
           <div className="relative flex items-center justify-center w-28 h-28">
             <div className="absolute inset-0 rounded-full border-4 border-gray-100"></div>
             <div className="absolute inset-0 rounded-full border-4 border-t-[#6C47FF] border-r-[#FF6B6B] animate-spin"></div>
@@ -153,36 +161,37 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
         </div>
 
       ) : (
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl" id="input-card">
-          <div className="text-center mb-8">
-            <h2 className="font-extrabold text-2xl text-gray-950 tracking-tight">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-xl" id="input-card">
+          <div className="text-center mb-6">
+            <h2 className="font-extrabold text-xl sm:text-2xl text-gray-950 tracking-tight">
               Generate My Personal Course
             </h2>
             <p className="text-gray-500 text-sm mt-1">Select your mode below</p>
           </div>
 
-          <div className="grid grid-cols-2 p-1.5 bg-gray-100 rounded-2xl mb-8">
+          {/* Tab switcher — fixed for mobile */}
+          <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-6 gap-1">
             <button
               onClick={() => { setMode('topic'); setMaterialText(''); setPdfBase64(undefined); setFileName(''); }}
-              className={`py-3.5 text-xs font-semibold rounded-xl tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+              className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 mode === 'topic' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
               }`}
             >
-              <Sparkles className="h-3.5 w-3.5 text-[#FF6B6B]" />
+              <Sparkles className="h-3.5 w-3.5 text-[#FF6B6B] shrink-0" />
               <span>Learn a Topic</span>
             </button>
             <button
               onClick={() => { setMode('material'); setTopic(''); }}
-              className={`py-3.5 text-xs font-semibold rounded-xl tracking-wider uppercase transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+              className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 mode === 'material' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
               }`}
             >
-              <FileText className="h-3.5 w-3.5 text-[#6C47FF]" />
+              <FileText className="h-3.5 w-3.5 text-[#6C47FF] shrink-0" />
               <span>Upload Material</span>
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
 
             {mode === 'topic' ? (
               <div className="space-y-2 text-left">
@@ -228,15 +237,19 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
                 </div>
 
                 {fileName && (
-                  <div className="p-3.5 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-2xl text-xs flex items-center space-x-2.5">
-                    <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
-                    <span className="truncate font-medium">{fileReadingMsg}</span>
+                  <div className={`p-3.5 border rounded-2xl text-xs flex items-center space-x-2.5 ${
+                    fileReadingMsg.includes('❌')
+                      ? 'bg-red-50 border-red-100 text-red-700'
+                      : 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                  }`}>
+                    <CheckCircle className="h-4 w-4 shrink-0" />
+                    <span className="font-medium">{fileReadingMsg}</span>
                   </div>
                 )}
 
-                <div className="flex items-center space-x-3.5 justify-center text-xs text-gray-400 uppercase tracking-wider my-3.5">
+                <div className="flex items-center space-x-3.5 justify-center text-xs text-gray-400 uppercase tracking-wider">
                   <div className="h-[1px] bg-gray-100 w-full"></div>
-                  <span>or paste directly</span>
+                  <span className="whitespace-nowrap">or paste directly</span>
                   <div className="h-[1px] bg-gray-100 w-full"></div>
                 </div>
 
