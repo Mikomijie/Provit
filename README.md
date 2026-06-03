@@ -1,7 +1,6 @@
 # Provit — Study it. Then prove it.
 
-**Live app:** https://provit-ai.quikdb.net  
-**Built for:** BuildQuik Challenge 2026  
+**Live app:** https://provit-ai.quikdb.net   
 **Deployed on:** QuikDB Compute
 
 ---
