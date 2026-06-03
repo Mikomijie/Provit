@@ -1,81 +1,95 @@
-# Provit
+# Provit — Study it. Then prove it.
 
-Study it. Then prove it.
-
-Provit is an AI learning platform that converts any topic, notes, or PDF into a structured 5-lesson course and requires users to actively demonstrate understanding before progressing.
-
-Users cannot advance by just reading. Each lesson must be explained back and validated before the next lesson unlocks.
+**Live app:** https://provit-ai.quikdb.net  
+**Built for:** BuildQuik Challenge 2026  
+**Deployed on:** QuikDB Compute
 
 ---
 
-## What the project does
+## The problem
 
-Provit takes user input (topic or uploaded material) and generates a structured learning path.
+Most study tools are passive. You read, you summarize, you close the tab — and forget everything by tomorrow.
 
-It:
-
-- Converts input into a 5-lesson course
-- Breaks content into structured explanations
-- Tests understanding after each lesson
-- Uses AI to evaluate user responses
-- Unlocks lessons only after successful completion
+ChatGPT will summarize your notes. Provit won't let you leave until you actually know them.
 
 ---
 
-## Core workflow
+## What Provit does
 
-Drop material  
-→ Learn structured lessons  
-→ Answer questions  
-→ AI evaluates response  
-→ Next lesson unlocks
+Paste any study material or type any topic. Provit builds a structured 5-lesson course and uses the **Feynman technique** to ensure retention — you must explain each lesson back in your own words before the next one unlocks.
+
+**The core loop:**
+1. Drop your material or type a topic
+2. Read a focused lesson (180–300 words, no fluff)
+3. Explain it back in your own words
+4. AI scores your explanation (requires 70% to pass)
+5. Next lesson unlocks only when you pass
+6. Complete all 5 → receive a certificate
 
 ---
 
 ## Features
 
-- PDF upload support
-- Topic-based course generation
-- AI-generated lesson structuring
-- “Explain it back” evaluation system
-- Progressive lesson unlocking
-- Real-time feedback and scoring
-
----
-
-## Example learning flow
-
-Topic: Photosynthesis
-
-Lesson 1: Chlorophyll and light absorption  
-Lesson 2: Energy conversion in plants  
-Lesson 3: Glucose production process  
-Lesson 4: Oxygen release mechanism  
-Lesson 5: Applications in real-world biology
-
-User is asked to explain concepts after each lesson before proceeding.
+- AI-generated 5-lesson courses from any topic or uploaded PDF
+- Explain-it-back grading with real-time AI feedback
+- Multiple choice and open-ended challenge types
+- Progressive lesson unlocking — no skipping
+- Anti-cheat paste blocker (active recall enforced)
+- Completion certificate with download
+- Course history saved locally
+- Clean animated landing page with interactive demo
 
 ---
 
 ## Tech stack
 
-- React
-- TypeScript
-- Vite
-- Node.js (Express)
-- LLM API (course generation and evaluation)
-- PDF parsing for uploaded materials
+| Layer | Technology |
+|---|---|
+| Frontend | React, TypeScript, Vite, Tailwind CSS |
+| Backend | Node.js, Express |
+| AI | OpenRouter API (LLM course generation + evaluation) |
+| PDF Parsing | unpdf |
+| Hosting | QuikDB Compute |
 
 ---
 
-## Project goal
+## Architecture highlight
 
-The goal of Provit is to shift learning from passive reading to active recall.
+Course generation uses an **async job pattern** to handle LLM latency:
 
-If the user cannot explain the concept, they do not progress.
+1. POST `/api/course/generate` responds instantly with a `jobId`
+2. Frontend polls `/api/course/status/:jobId` every 2 seconds
+3. Job resolves when LLM returns — no gateway timeouts
+
+---
+
+## Why 5 lessons?
+
+The Feynman technique works best in focused chunks. 5 deeply understood lessons beat 20 passively skimmed ones. Every lesson in Provit requires proof before progression — that's the core differentiator.
+
+---
+
+## Running locally
+
+```bash
+git clone https://github.com/Mikomijie/Provit.git
+cd Provit
+npm install
+```
+
+Create a `.env` file:
+```
+OPENROUTER_API_KEY=your_key_here
+```
+
+```bash
+npm run dev
+```
+
+Open `http://127.0.0.1:3000`
 
 ---
 
 ## Author
 
-Mikomijie
+Built by Mikomijie for the BuildQuik Challenge 2026
