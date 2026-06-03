@@ -46,19 +46,16 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
 
   const readFile = (file: File) => {
     if (!file) return;
-
     const name = file.name.toLowerCase();
     if (name.endsWith('.pptx') || name.endsWith('.ppt') || name.endsWith('.doc') || name.endsWith('.docx')) {
-      setFileReadingMsg("❌ This file type isn't supported. Please upload a PDF or paste your text directly.");
+      setFileReadingMsg("This file type isn't supported. Please upload a PDF or paste your text directly.");
       setFileName(file.name);
       return;
     }
-
     setFileName(file.name);
     setFileReadingMsg("Reading file...");
     setPdfBase64(undefined);
     setMaterialText("");
-
     if (name.endsWith('.pdf')) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -74,7 +71,6 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
       reader.readAsDataURL(file);
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result;
@@ -134,26 +130,17 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
               })}
             </div>
           </div>
-
           <div className="space-y-3.5">
-            <h3 className="font-bold text-2xl text-gray-900 tracking-tight">
-              Building Your Course
-            </h3>
+            <h3 className="font-bold text-2xl text-gray-900 tracking-tight">Building Your Course</h3>
             <div className="flex items-center justify-center space-x-2">
               {loadingSteps.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    idx === loadingPhase ? "w-6 bg-[#6C47FF]" : "w-2 bg-gray-200"
-                  }`}
-                />
+                <div key={idx} className={`h-2 rounded-full transition-all duration-300 ${idx === loadingPhase ? "w-6 bg-[#6C47FF]" : "w-2 bg-gray-200"}`} />
               ))}
             </div>
             <p className="text-gray-600 text-[15px] max-w-sm mx-auto font-medium py-1">
               "{loadingSteps[loadingPhase].text}"
             </p>
           </div>
-
           <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-xs text-gray-400 w-full text-left flex items-start space-x-2.5">
             <Info className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
             <span>Provit is building your personal course. This takes roughly 15-20 seconds. Hang tight!</span>
@@ -169,7 +156,7 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
             <p className="text-gray-500 text-sm mt-1">Select your mode below</p>
           </div>
 
-          {/* Tab switcher — fixed for mobile */}
+          {/* Tab switcher */}
           <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-6 gap-1">
             <button
               onClick={() => { setMode('topic'); setMaterialText(''); setPdfBase64(undefined); setFileName(''); }}
@@ -179,18 +166,19 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
             >
               <Sparkles className="h-3.5 w-3.5 text-[#FF6B6B] shrink-0" />
               <span className="hidden sm:inline">Learn a Topic</span>
-<span className="sm:hidden">Learn</span>
+              <span className="sm:hidden">Learn</span>
             </button>
-             <button
-  onClick={() => { setMode('material'); setTopic(''); }}
-  className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
-    mode === 'material' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
-  }`}
->
-  <FileText className="h-3.5 w-3.5 text-[#6C47FF] shrink-0" />
-  <span className="hidden sm:inline">Upload Material</span>
-  <span className="sm:hidden">Upload</span>
-</button>
+            <button
+              onClick={() => { setMode('material'); setTopic(''); }}
+              className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                mode === 'material' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              <FileText className="h-3.5 w-3.5 text-[#6C47FF] shrink-0" />
+              <span className="hidden sm:inline">Upload Material</span>
+              <span className="sm:hidden">Upload</span>
+            </button>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -220,13 +208,7 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
                     dragActive ? "border-[#6C47FF] bg-[#6C47FF]/5" : "border-gray-200 bg-gray-50 hover:bg-gray-100/40"
                   }`}
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".txt,.md,.csv,.pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
+                  <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.pdf" onChange={handleFileChange} className="hidden" />
                   <div className="p-3.5 bg-white rounded-full shadow-sm border border-gray-100">
                     <UploadCloud className="h-6 w-6 text-[#6C47FF]" />
                   </div>
@@ -239,7 +221,7 @@ export default function UploadPage({ initialMode, onGenerate, isGenerating }: Up
 
                 {fileName && (
                   <div className={`p-3.5 border rounded-2xl text-xs flex items-center space-x-2.5 ${
-                    fileReadingMsg.includes('❌')
+                    fileReadingMsg.includes('supported')
                       ? 'bg-red-50 border-red-100 text-red-700'
                       : 'bg-emerald-50 border-emerald-100 text-emerald-800'
                   }`}>
