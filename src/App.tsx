@@ -98,7 +98,11 @@ export default function App() {
 
     } catch (err: any) {
       console.error("Course Generation trigger failed: ", err);
-      setErrorMessage(err.message || "Course building failed. Please try again.");
+      setErrorMessage(
+  err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")
+    ? "Connection lost during generation. Please check your internet and try again."
+    : err.message || "Course building failed. Please try again."
+);
     } finally {
       setIsGenerating(false);
     }
